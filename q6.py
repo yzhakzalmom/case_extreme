@@ -2,7 +2,7 @@ import pandas as pd
 import openmeteo_requests
 import requests_cache
 from retry_requests import retry
-from sqlalchemy import create_engine, types
+from sqlalchemy import create_engine
 
 # Define variáveis para a requisição
 LATITUDE_RJ = -22.9064
@@ -35,17 +35,14 @@ def gera_df_pressao_atm_semanal(latitude: float, longitude: float) -> pd.DataFra
     # Extrai das respostas as previsões horarias de pressão semanal
     previsoes_horarias = response.Hourly()
     pressao_horaria = previsoes_horarias.Variables(0).ValuesAsNumpy()
-
-    # Cria o DataFrame contendo as previsões da pressão atmosférica
-    df_pressao_atm_semanal = pd.DataFrame({'id': range(1, len(pressao_horaria) + 1)})
     
-    # Cria coluna de faixas horária nesse DataFrame
-    df_pressao_atm_semanal['momento'] = pd.date_range(
+    # Cria DataFrame com as colunas de faixas horárias
+    df_pressao_atm_semanal = pd.DataFrame({'momento': pd.date_range(
         start = pd.to_datetime(previsoes_horarias.Time() + response.UtcOffsetSeconds(), unit = "s", utc = True),
         end =  pd.to_datetime(previsoes_horarias.TimeEnd() + response.UtcOffsetSeconds(), unit = "s", utc = True),
         freq = pd.Timedelta(seconds = previsoes_horarias.Interval()),
         inclusive = "left"
-    )
+    )})
 
     # Cria coluna com os valores da pressão atmosférica
     df_pressao_atm_semanal['valor'] = pressao_horaria
@@ -66,13 +63,13 @@ def cria_tabela(df: pd.DataFrame, nome_tabela:str, caminho_bd: str) -> None:
             name=nome_tabela,
             con=conn,
             if_exists='replace',
-            index=False,
+            index=True,
         )
 
 def main():
 
     df_previsao_atm = gera_df_pressao_atm_semanal(LATITUDE_RJ, LONGITUDE_RJ)
-    cria_tabela(df_previsao_atm, 'previsao_pressao_atm', 'meteorologia.bd')
+    cria_tabela(df_previsao_atm, 'previsao_pressao_atm', 'meteorologia.db')
 
 if __name__ == '__main__':
     main()

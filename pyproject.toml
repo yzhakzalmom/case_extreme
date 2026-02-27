@@ -13,3 +13,8 @@ dependencies = [
     "retry-requests>=2.0.0",
     "sqlalchemy>=2.0.47",
 ]
+
+[tool.uv.workspace]
+members = [
+    "case_extreme",
+]

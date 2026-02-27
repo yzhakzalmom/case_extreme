@@ -84,7 +84,7 @@ def cria_tabelas_stg(dict_tb_rl: dict, dict_layouts: dict, caminho_bd: str) -> N
 
             # Define dict detalhando tipos
             dtype = {
-                row.Coluna: resolve_tipo(row.Tipo, int(row.Tamanho))
+                row.Coluna: resolve_tipo(row.Tipo, row.Tamanho)
                 for row in layout.itertuples()
             }
 
@@ -98,7 +98,7 @@ def cria_tabelas_stg(dict_tb_rl: dict, dict_layouts: dict, caminho_bd: str) -> N
             )
 
 def main():
-    cria_tabelas_stg(gera_df_tabelas(), gera_df_layouts(), 'sigtap.bd')
+    cria_tabelas_stg(gera_df_tabelas(), gera_df_layouts(), 'sigtap.db')
 
 if __name__ == "__main__":
     main()
