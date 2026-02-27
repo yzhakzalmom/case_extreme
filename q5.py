@@ -1,39 +1,19 @@
 import pandas as pd
-from pathlib import Path, WindowsPath
+from pathlib import Path
 
 # Retorna um dicionário contendo DataFrames com os conteúdos de cada layout
-def gera_df_layouts(caminho_absoluto: WindowsPath) -> dict:
+def gera_df_layouts(sigtap_dir: Path) -> dict:
 
-    # Lista os arquivos de layout presentes no caminho indicado
-    lista_layouts = list(caminho_absoluto.glob('*layout.txt'))
-
-    # Cria dict que armazenará os DataFrames de layout
-    dict_layouts = {}
-
-    for arquivo in lista_layouts:
-
-        # Define nome da tabela, excuindo o sufixo de layout
-        nome_tabela = arquivo.stem.replace('_layout', '')
-        # Define caminho absoluto do layout
-        caminho_layout = arquivo.resolve()
-
-        # Como o conteúdo dos layouts em .txt está estruturado como csv, lê dessa forma e armazena no dict
-        dict_layouts[nome_tabela] = pd.read_csv(caminho_layout)
-
-    return dict_layouts
+    return {
+        arquivo.stem.replace('_layout', ''): pd.read_csv(arquivo) # Como o conteúdo do txt de layout está estruturado em csv, lê arquivo dessa forma diretamente
+        for arquivo in sigtap_dir.glob('*layout.txt') # Faz isso para cada arquivo de layout
+    }
 
 # Retorna um dict contendo DataFrames com os conteúdo de cada tabela ou relacionamento
-def gera_df_tabelas() -> dict:
+def gera_df_tabelas(sigtap_dir: Path | None = None) -> dict:
 
     # Define caminho absoluto do diretório sigtap
-    sigtap_dir = Path('sigtap-simplificado')
-
-    # Lista arquivos de tabelas e relacionamentos que não sejam layouts
-    lista_tb_rl = [
-        arquivo
-        for arquivo in sigtap_dir.glob('*.txt')
-        if not arquivo.stem.endswith('_layout')
-    ]
+    sigtap_dir = sigtap_dir or Path('sigtap-simplificado')
 
     # Define dict que armazenará conteúdos das tabelas e relacionamentos
     dict_tb_rl = {}
@@ -41,32 +21,28 @@ def gera_df_tabelas() -> dict:
     dict_layouts = gera_df_layouts(sigtap_dir)
 
     # Para cada arquivo de tabela ou relacionamento
-    for arquivo in lista_tb_rl:
+    for arquivo in sigtap_dir('*.txt'):
+        if arquivo.stem.endswith('_layout'): # Ignora caso seja layout
+            continue
         
-        # Define variáveis auxiliares para a leitura do conteúdo das tabelas e relacionamentos
-        df_layout_atual = dict_layouts[nome_tb_rl] # DataFrame de layout atual
-        nome_tb_rl = arquivo.stem # Nome da tabela ou relacionamento
-        caminho_tb_rl = arquivo.resolve() # Caminho absoluto
-        lista_colunas = list(df_layout_atual['Coluna']) # Nome das colunas
-        dict_aux = {coluna: [] for coluna in lista_colunas} # Dict auxiliar à criação do DataFrame
+        # Define variáveis para auxiliar a leitura dos conteúdos em texto
+        nome_tb_rl = arquivo.stem
+        df_layout = dict_layouts[nome_tb_rl] # Define layout da tabela atual
 
-        # A partir do caminho absoluto do arquivo, abre o arquivo de texto para leitura
-        with open(caminho_tb_rl, 'r', encoding='utf8') as f:
+        # Define as especificações para leitura do conteúdo
+        colspecs = list(zip(df_layout['Inicio'] - 1, df_layout['Fim']))
 
-            # Para cada linha do arquivo de texto
-            for linha in f:
-
-                # Para cada coluna da tabela (cada linha do DataFrame de layout representa uma coluna)
-                for row in df_layout_atual.itertuples():
-
-                    # Extrai do arquivo de texto da tabela o conteúdo da determinada coluna, utilizando as posições de início e de fim do texto
-                    conteudo_coluna = str(linha[row.Inicio - 1: row.Fim])
-
-                    # No dict auxiliar, adiciona o conteúdo da coluna à lista na chave que representa cada coluna
-                    dict_aux[row.Coluna].append(conteudo_coluna)
-
-        # Cria um DataFrame a partir do dict auxiliar para a tabela ou coluna atual
-        dict_tb_rl[nome_tb_rl] = pd.DataFrame(data=dict_aux, dtype=str)
+        # Cria DataFrame utilizando read_fwf, que aplica a especificação ao conteúdo do arquivo
+        df = pd.read_fwf(
+            arquivo,
+            colspecs=colspecs,
+            names=df_layout['Coluna'].tolist(),
+            dtype=str,
+            header=None
+        )
+        # Remove os espaços vazios nas colunas
+        df = df.apply(lambda col: col.str.strip())
+        dict_tb_rl[nome_tb_rl] = df
 
     return dict_tb_rl
 
