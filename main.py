@@ -1,6 +1,8 @@
 import pandas as pd
 from pathlib import Path, WindowsPath
 
+
+
 # Retorna um dicionário contendo DataFrames com os conteúdos de cada layout
 def gera_df_layouts(caminho_absoluto: WindowsPath) -> dict:
 

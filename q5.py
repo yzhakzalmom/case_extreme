@@ -9,9 +9,11 @@ MAPA_TIPOS = {
     'NUMBER': types.Numeric,
     'DATE': types.Date
 }
+# Define o caminho absoltuo do sigtap
+CAMINHO_SIGTAP = Path('sigtap-simplificado')
 
 # Retorna um dicionário contendo DataFrames com os conteúdos de cada layout
-def gera_df_layouts(sigtap_dir: Path) -> dict:
+def gera_df_layouts(sigtap_dir: Path = CAMINHO_SIGTAP) -> dict:
 
     return {
         arquivo.stem.replace('_layout', ''): pd.read_csv(arquivo) # Como o conteúdo do txt de layout está estruturado em csv, lê arquivo dessa forma diretamente
@@ -19,10 +21,7 @@ def gera_df_layouts(sigtap_dir: Path) -> dict:
     }
 
 # Retorna um dict contendo DataFrames com os conteúdo de cada tabela ou relacionamento
-def gera_df_tabelas(sigtap_dir: Path | None = None) -> dict:
-
-    # Define caminho absoluto do diretório sigtap
-    sigtap_dir = sigtap_dir or Path('sigtap-simplificado')
+def gera_df_tabelas(sigtap_dir: Path = CAMINHO_SIGTAP) -> dict:
 
     # Define dict que armazenará conteúdos das tabelas e relacionamentos
     dict_tb_rl = {}
@@ -30,7 +29,7 @@ def gera_df_tabelas(sigtap_dir: Path | None = None) -> dict:
     dict_layouts = gera_df_layouts(sigtap_dir)
 
     # Para cada arquivo de tabela ou relacionamento
-    for arquivo in sigtap_dir('*.txt'):
+    for arquivo in sigtap_dir.glob('*.txt'):
         if arquivo.stem.endswith('_layout'): # Ignora caso seja layout
             continue
         
@@ -47,7 +46,8 @@ def gera_df_tabelas(sigtap_dir: Path | None = None) -> dict:
             colspecs=colspecs,
             names=df_layout['Coluna'].tolist(),
             dtype=str,
-            header=None
+            header=None,
+            encoding='latin-1'
         )
         # Remove os espaços vazios nas colunas
         df = df.apply(lambda col: col.str.strip())
@@ -67,7 +67,35 @@ def resolve_tipo(tipo_layout: str, tamanho: int) -> types:
     
     return tipo
 
-#
+# Cria tabelas no banco de dados a partir dos DataFrames
+def cria_tabelas(dict_tb_rl: dict, dict_layouts: dict, caminho_bd: str) -> None:
+
+    # Configura conexão com o banco sqlite
+    engine = create_engine(f'sqlite:///{caminho_bd}')
+
+    # Inicia conexão com o banco sqlite
+    with engine.begin() as conn:
+
+        # Itera pelos DataFrames criados através dos txts das tabelas
+        for nome_tb_rl, df in dict_tb_rl.items():
+
+            # Extrai o layout para a tabela atual
+            layout = dict_layouts[nome_tb_rl]
+
+            # Define dict detalhando tipos
+            dtype = {
+                row.Coluna: resolve_tipo(row.Tipo, int(row.Tamanho))
+                for row in layout.itertuples()
+            }
+
+            # Dentro da conexão estabelecida, cria tabela a partir do DataFrame atual
+            df.to_sql(
+                name=nome_tb_rl,
+                con=conn,
+                if_exists='replace',
+                index=False,
+                dtype=dtype
+            )
 
 def main():
     pass
