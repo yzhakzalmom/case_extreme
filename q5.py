@@ -68,7 +68,7 @@ def resolve_tipo(tipo_layout: str, tamanho: int) -> types:
     return tipo
 
 # Cria tabelas no banco de dados a partir dos DataFrames
-def cria_tabelas(dict_tb_rl: dict, dict_layouts: dict, caminho_bd: str) -> None:
+def cria_tabelas_stg(dict_tb_rl: dict, dict_layouts: dict, caminho_bd: str) -> None:
 
     # Configura conexão com o banco sqlite
     engine = create_engine(f'sqlite:///{caminho_bd}')
@@ -98,7 +98,7 @@ def cria_tabelas(dict_tb_rl: dict, dict_layouts: dict, caminho_bd: str) -> None:
             )
 
 def main():
-    cria_tabelas(gera_df_tabelas(), gera_df_layouts(), 'sigtap.bd')
+    cria_tabelas_stg(gera_df_tabelas(), gera_df_layouts(), 'sigtap.bd')
 
 if __name__ == "__main__":
     main()

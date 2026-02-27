@@ -2,8 +2,13 @@ import pandas as pd
 import openmeteo_requests
 import requests_cache
 from retry_requests import retry
+from sqlalchemy import create_engine, types
 
-# Gera um DataFrame que apresenta as previsões horárias de pressão atmosférica para 7 dias
+# Define variáveis para a requisição
+LATITUDE_RJ = -22.9064
+LONGITUDE_RJ = -43.1822
+
+# Retorna um DataFrame que apresenta as previsões horárias de pressão atmosférica para 7 dias
 def gera_df_pressao_atm_semanal(latitude: float, longitude: float) -> pd.DataFrame:
 
     # Configura cache e repetição de tentativas para o cliente openmeteo
@@ -46,3 +51,28 @@ def gera_df_pressao_atm_semanal(latitude: float, longitude: float) -> pd.DataFra
     df_pressao_atm_semanal['valor'] = pressao_horaria
 
     return df_pressao_atm_semanal
+
+# Cria tabela no banco de dados
+def cria_tabela(df: pd.DataFrame, nome_tabela:str, caminho_bd: str) -> None:
+
+    # Configura conexão com o banco sqlite
+    engine = create_engine(f'sqlite:///{caminho_bd}')
+
+    # Inicia conexão com o banco sqlite
+    with engine.begin() as conn:
+
+        # Cria tabela no banco de dados a partir do DataFrame
+        df.to_sql(
+            name=nome_tabela,
+            con=conn,
+            if_exists='replace',
+            index=False,
+        )
+
+def main():
+
+    df_previsao_atm = gera_df_pressao_atm_semanal(LATITUDE_RJ, LONGITUDE_RJ)
+    cria_tabela(df_previsao_atm, 'previsao_pressao_atm', 'meteorologia.bd')
+
+if __name__ == '__main__':
+    main()
