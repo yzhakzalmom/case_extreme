@@ -1,5 +1,14 @@
 import pandas as pd
 from pathlib import Path
+from sqlalchemy import create_engine, types
+
+# Define um mapa de tipos entre os tipos nos layouts e no SQLAlchemy
+MAPA_TIPOS = {
+    'VARCHAR2': types.String,
+    'CHAR': types.String,
+    'NUMBER': types.Numeric,
+    'DATE': types.Date
+}
 
 # Retorna um dicionário contendo DataFrames com os conteúdos de cada layout
 def gera_df_layouts(sigtap_dir: Path) -> dict:
@@ -45,6 +54,20 @@ def gera_df_tabelas(sigtap_dir: Path | None = None) -> dict:
         dict_tb_rl[nome_tb_rl] = df
 
     return dict_tb_rl
+
+# Define função que resolve o tipo recebido do layout
+def resolve_tipo(tipo_layout: str, tamanho: int) -> types:
+
+    # Extrai tipo do mapa de tipos. Caso não haja correspondência, define Text por padrão
+    tipo = MAPA_TIPOS.get(tipo_layout, types.Text)
+
+    # Retorna o tipo com o tamanho definido pelo layout
+    if tipo is types.String:
+        return tipo(tamanho)
+    
+    return tipo
+
+#
 
 def main():
     pass
