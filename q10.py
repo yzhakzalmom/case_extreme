@@ -62,7 +62,7 @@ def visualizar_atendimentos(lista_datas: list[str], titulo: str = 'Atendimentos 
 
     # Define estilo e área da imagem
     plt.style.use('seaborn-v0_8-whitegrid')
-    fig, ax = plt.subplots(figsize=(max(8, len(datas_ordenadas) * 0.75), 5))
+    fig, ax = plt.subplots(figsize=(15, 5))
 
     # Define as cores das barras
     amplitude = np.max(lista_freq_datas) - np.min(lista_freq_datas)
