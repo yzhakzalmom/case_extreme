@@ -98,7 +98,7 @@ def cria_tabelas(dict_tb_rl: dict, dict_layouts: dict, caminho_bd: str) -> None:
             )
 
 def main():
-    pass
+    cria_tabelas(gera_df_tabelas(), gera_df_layouts(), 'sigtap.bd')
 
 if __name__ == "__main__":
     main()
